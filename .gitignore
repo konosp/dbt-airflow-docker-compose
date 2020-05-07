@@ -1,0 +1,5 @@
+airflow/airflow-webserver.pid
+airflow/unittests.cfg
+dbt/.user.yml
+dbt/data/*
+*.pyc
