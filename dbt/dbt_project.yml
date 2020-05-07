@@ -1,0 +1,55 @@
+
+# Name your project! Project names should contain only lowercase characters
+# and underscores. A good package name should reflect your organization's
+# name or the intended use of these models
+name: 'instacart_dbt_models'
+version: '1.0.0'
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'default'
+
+# These configurations specify where dbt should look for different types of files.
+# The `source-paths` config, for example, states that models in this project can be
+# found in the "models/" directory. You probably won't need to change these!
+source-paths: ["models"]
+analysis-paths: ["analysis"]
+test-paths: ["tests"]
+data-paths: ["data"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"  # directory which will store compiled SQL files
+clean-targets:         # directories to be removed by `dbt clean`
+    - "target"
+    - "dbt_modules"
+
+
+# Configuring models
+# Full documentation: https://docs.getdbt.com/docs/configuring-models
+
+# In this example config, we tell dbt to build all models in the example/ directory
+# as tables. These settings can be overridden in the individual model files
+# using the `{{ config(...) }}` macro.
+models:
+    instacart_dbt_models:
+      # Applies to all files under models/example/
+        example:
+            materialized: view
+
+seeds:
+    instacart_dbt_models:
+        enabled: true
+        quote_columns: true
+        schema: seed_data
+        # This configures data/orders_with_date.csv
+        # orders_with_date:
+            # column_types:
+                # order_id: varchar(2)
+                # user_id: varchar(32)
+                # order_number: 
+            #   order_date: varchar(10)
+
+                # seed hooks
+
+        #    post-hook: "ALTER TABLE orders_with_date ALTER COLUMN order_date TYPE DATE using to_date(order_date, 'DD-MM-YYYY');"
+            
