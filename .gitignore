@@ -1,5 +1,6 @@
 airflow/airflow-webserver.pid
 airflow/unittests.cfg
 dbt/.user.yml
-dbt/data/*
+dbt/data/order_products__prior.csv.zip
 *.pyc
+sample_data/order_products__prior.csv.zip
