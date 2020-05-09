@@ -32,24 +32,14 @@ clean-targets:         # directories to be removed by `dbt clean`
 # using the `{{ config(...) }}` macro.
 models:
     instacart_dbt_models:
-      # Applies to all files under models/example/
-        example:
-            materialized: view
-
-seeds:
-    instacart_dbt_models:
-        enabled: true
-        quote_columns: true
-        schema: seed_data
-        # This configures data/orders_with_date.csv
-        # orders_with_date:
-            # column_types:
-                # order_id: varchar(2)
-                # user_id: varchar(32)
-                # order_number: 
-            #   order_date: varchar(10)
-
-                # seed hooks
-
-        #    post-hook: "ALTER TABLE orders_with_date ALTER COLUMN order_date TYPE DATE using to_date(order_date, 'DD-MM-YYYY');"
-            
+        vars:
+            start_date: '01-01-2019'
+            end_date: '02-01-2019'
+        materialized: table
+        daily:
+            materialized: incremental
+            tags: daily
+        initialisation:
+            tags: init-once
+        core:
+            tags: snapshot

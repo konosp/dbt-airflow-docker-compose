@@ -10,11 +10,12 @@ services:
       DBT_SEED_SCHEMA: dbt_seed_data
       AIRFLOW_SCHEMA: airflow
     expose:
-      - "5432"
+      - 5432
     restart: always
     volumes:
       - ./scripts_postgres:/docker-entrypoint-initdb.d
-      - ./dbt:/dbt
+      # - ./dbt:/dbt
+      - ./sample_data:/sample_data
 
   airflow:
     build: .
@@ -30,9 +31,9 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_DB: airflowdb
     depends_on:
-      - "postgres"
+      - postgres
     ports:
-      - "8000:8080"
+      - 8000:8080
     volumes:
       - ./dbt:/dbt
       - ./airflow:/airflow
@@ -43,5 +44,5 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - "postgres"
+      - postgres
 

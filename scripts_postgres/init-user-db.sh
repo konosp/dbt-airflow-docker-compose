@@ -1,5 +1,8 @@
 #!/bin/bash
 set -e
+
+DESTINATION_SAMPLE_DATA_PATH=/sample_data
+
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
 	ALTER ROLE $POSTGRES_USER SET search_path TO $AIRFLOW_SCHEMA;
 	CREATE SCHEMA IF NOT EXISTS $DBT_SCHEMA AUTHORIZATION $POSTGRES_USER;
@@ -50,10 +53,10 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 	);
 
 	-- Import Data
-	COPY $DBT_SEED_SCHEMA.order_products__prior FROM '/dbt/data/order_products__prior.csv' DELIMITER ',' CSV HEADER;
-	COPY $DBT_SEED_SCHEMA.order_products__train FROM '/dbt/data/order_products__train.csv' DELIMITER ',' CSV HEADER;
-	COPY $DBT_SEED_SCHEMA.orders FROM '/dbt/data/orders.csv' DELIMITER ',' CSV HEADER NULL '';
-	COPY $DBT_SEED_SCHEMA.products FROM '/dbt/data/products.csv' DELIMITER ',' CSV HEADER;
-	COPY $DBT_SEED_SCHEMA.departments FROM '/dbt/data/departments.csv' DELIMITER ',' CSV HEADER;
-	COPY $DBT_SEED_SCHEMA.aisles FROM '/dbt/data/aisles.csv' DELIMITER ',' CSV HEADER;
+	COPY $DBT_SEED_SCHEMA.order_products__prior FROM '$DESTINATION_SAMPLE_DATA_PATH/order_products__prior.csv' DELIMITER ',' CSV HEADER;
+	COPY $DBT_SEED_SCHEMA.order_products__train FROM '$DESTINATION_SAMPLE_DATA_PATH/order_products__train.csv' DELIMITER ',' CSV HEADER;
+	COPY $DBT_SEED_SCHEMA.orders FROM '$DESTINATION_SAMPLE_DATA_PATH/orders.csv' DELIMITER ',' CSV HEADER NULL '';
+	COPY $DBT_SEED_SCHEMA.products FROM '$DESTINATION_SAMPLE_DATA_PATH/products.csv' DELIMITER ',' CSV HEADER;
+	COPY $DBT_SEED_SCHEMA.departments FROM '$DESTINATION_SAMPLE_DATA_PATH/departments.csv' DELIMITER ',' CSV HEADER;
+	COPY $DBT_SEED_SCHEMA.aisles FROM '$DESTINATION_SAMPLE_DATA_PATH/aisles.csv' DELIMITER ',' CSV HEADER;
 EOSQL
