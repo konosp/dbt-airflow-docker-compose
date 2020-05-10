@@ -1,19 +1,33 @@
 version: '3'
 services:
-  postgres:
+  postgres-airflow:
     image: postgres
     environment:
       POSTGRES_PASSWORD: pssd
       POSTGRES_USER : airflowuser
       POSTGRES_DB : airflowdb
-      DBT_SCHEMA: dbt
-      DBT_SEED_SCHEMA: dbt_seed_data
+      
       AIRFLOW_SCHEMA: airflow
     expose:
       - 5432
     restart: always
     volumes:
       - ./scripts_postgres:/docker-entrypoint-initdb.d
+      # - ./sample_data:/sample_data
+
+  postgres-dbt:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: pssd
+      POSTGRES_USER : dbtuser
+      POSTGRES_DB : dbtdb
+      
+      DBT_SCHEMA: dbt
+      DBT_RAW_DATA_SCHEMA: dbt_raw_data
+    expose:
+      - 5432
+    restart: always
+    volumes:
       - ./sample_data:/sample_data
 
   airflow:
@@ -27,14 +41,15 @@ services:
       AIRFLOW__CORE__DAG_CONCURRENCY: 4
       AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 4
       # AIRFLOW__ADMIN__HIDE_SENSITIVE_VARIABLE_FIELDS: False
-      # Postgres details need to match values defined in the postgres service
+      # Postgres details need to match with the values defined in the postgres-airflow service
       POSTGRES_USER: airflowuser
       POSTGRES_PASSWORD: pssd
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: postgres-airflow
       POSTGRES_PORT: 5432
       POSTGRES_DB: airflowdb
     depends_on:
-      - postgres
+      - postgres-airflow
+      - postgres-dbt
     ports:
       - 8000:8080
     volumes:
@@ -47,5 +62,6 @@ services:
     ports:
       - 8080:8080
     depends_on:
-      - postgres
+      - postgres-airflow
+      - postgres-dbt
 

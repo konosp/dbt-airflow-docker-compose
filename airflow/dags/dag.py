@@ -39,8 +39,6 @@ def get_node_structure():
 
 
 # [START default_args]
-# These args will get passed on to each operator
-# You can override them on a per-task basis during operator initialization
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -53,7 +51,7 @@ default_args = {
 
 # [START instantiate_dag]
 daily_dag = DAG(
-    'daily_dbt_models',
+    '4_daily_dbt_models',
     default_args=default_args,
     description='Managing dbt data pipeline',
     schedule_interval = '@daily',
@@ -61,7 +59,7 @@ daily_dag = DAG(
 daily_operators = {}
 
 snapshot_dag = DAG(
-    'snapshot_dbt_models',
+    '3_snapshot_dbt_models',
     default_args=default_args,
     description='Managing dbt data pipeline',
     schedule_interval = None,
@@ -69,7 +67,7 @@ snapshot_dag = DAG(
 snapshot_operators = {}
 
 init_once_dag = DAG(
-    'init_once_dbt_models',
+    '2_init_once_dbt_models',
     default_args=default_args,
     description='Managing dbt data pipeline',
     schedule_interval = None,
