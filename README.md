@@ -1,6 +1,8 @@
 # Apache Airflow and DBT using Docker Compose
 Stand-alone project that utilises public eCommerce data from Instacart to demonstrate how to schedule dbt models through Airflow.
 
+For more Data & Analytics related reading, check https://analyticsmayhem.com
+
 ## Requirements 
 * Install [Docker](https://www.docker.com/products/docker-desktop)
 * Install [Docker Compose](https://docs.docker.com/compose/install/)
