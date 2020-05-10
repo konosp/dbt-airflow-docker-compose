@@ -1,11 +1,7 @@
-# The DAG object; we'll need this to instantiate a DAG
 from airflow import DAG, macros
-# Operators; we need this to operate!
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-# from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
-
 from datetime import datetime
 
 # [START default_args]

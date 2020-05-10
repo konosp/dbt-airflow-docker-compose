@@ -21,7 +21,6 @@ services:
       POSTGRES_PASSWORD: pssd
       POSTGRES_USER : dbtuser
       POSTGRES_DB : dbtdb
-      
       DBT_SCHEMA: dbt
       DBT_RAW_DATA_SCHEMA: dbt_raw_data
     expose:
@@ -47,6 +46,14 @@ services:
       POSTGRES_HOST: postgres-airflow
       POSTGRES_PORT: 5432
       POSTGRES_DB: airflowdb
+      # postgres-dbt connection details. Required for the inital loading of seed data
+      # Credentials need to match with service postgres-dbt
+      DBT_POSTGRES_PASSWORD: pssd
+      DBT_POSTGRES_USER : dbtuser
+      DBT_POSTGRES_DB : dbtdb
+      DBT_DBT_SCHEMA: dbt
+      DBT_DBT_RAW_DATA_SCHEMA: dbt_raw_data
+      DBT_POSTGRES_HOST: postgres-dbt
     depends_on:
       - postgres-airflow
       - postgres-dbt

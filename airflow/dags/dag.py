@@ -1,10 +1,6 @@
-# The DAG object; we'll need this to instantiate a DAG
 from airflow import DAG, macros
-# Operators; we need this to operate!
 from airflow.operators.bash_operator import BashOperator
-# from airflow.operators.python_operator import PythonOperator
 from airflow.utils.dates import days_ago
-
 from datetime import datetime
 
 # Parse nodes
@@ -56,7 +52,6 @@ daily_dag = DAG(
     description='Managing dbt data pipeline',
     schedule_interval = '@daily',
 )
-daily_operators = {}
 
 snapshot_dag = DAG(
     '3_snapshot_dbt_models',
@@ -64,7 +59,6 @@ snapshot_dag = DAG(
     description='Managing dbt data pipeline',
     schedule_interval = None,
 )
-snapshot_operators = {}
 
 init_once_dag = DAG(
     '2_init_once_dbt_models',
@@ -72,7 +66,6 @@ init_once_dag = DAG(
     description='Managing dbt data pipeline',
     schedule_interval = None,
 )
-init_once_operators = {}
 
 all_operators = {}
 # [END instantiate_dag]
@@ -89,7 +82,6 @@ for node in nodes:
             bash_command=bsh_cmd,
             dag=daily_dag,
         )
-        daily_operators[node] = tmp_operator
         all_operators[node] = tmp_operator
 
     elif ('snapshot' in nodes[node]['tags']):
@@ -99,7 +91,6 @@ for node in nodes:
             bash_command=bsh_cmd,
             dag=snapshot_dag,
         )
-        snapshot_operators[node] = tmp_operator
         all_operators[node] = tmp_operator
 
     elif ('init-once' in nodes[node]['tags']):
@@ -111,9 +102,9 @@ for node in nodes:
             bash_command=bsh_cmd,
             dag=init_once_dag,
         )
-        init_once_operators[node] = tmp_operator
         all_operators[node] = tmp_operator
 
+# Parse nodes and assign operator dependencies
 for node in nodes:
     for parent in nodes[node]['ancestors']:
         if nodes[node]['tags'] == nodes[parent]['tags']:
