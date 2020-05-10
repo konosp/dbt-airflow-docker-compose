@@ -1,9 +1,9 @@
 (
     select *
-    from dbt_seed_data.order_products__prior
+    from {{ source('instacart_raw_data', 'order_products__prior') }}
 )
 UNION 
 (   
     select *
-    from dbt_seed_data.order_products__train
+    from {{ source('instacart_raw_data', 'order_products__train') }}
 )

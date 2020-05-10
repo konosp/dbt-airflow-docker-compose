@@ -14,7 +14,6 @@ services:
     restart: always
     volumes:
       - ./scripts_postgres:/docker-entrypoint-initdb.d
-      # - ./dbt:/dbt
       - ./sample_data:/sample_data
 
   airflow:
@@ -27,7 +26,7 @@ services:
       AIRFLOW__CORE__PARALLELISM: 4
       AIRFLOW__CORE__DAG_CONCURRENCY: 4
       AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 4
-      AIRFLOW__ADMIN__HIDE_SENSITIVE_VARIABLE_FIELDS: 'False'
+      # AIRFLOW__ADMIN__HIDE_SENSITIVE_VARIABLE_FIELDS: False
       # Postgres details need to match values defined in the postgres service
       POSTGRES_USER: airflowuser
       POSTGRES_PASSWORD: pssd

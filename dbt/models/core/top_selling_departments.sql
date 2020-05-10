@@ -4,7 +4,7 @@ SELECT
 FROM 
     {{ ref('stg_top_selling_products') }} as t1
 LEFT JOIN
-    {{ ref('departments') }} as t2
+    {{ source('instacart_raw_data','departments') }} as t2
 ON 
     t1.department_id = t2.department_id
 GROUP BY

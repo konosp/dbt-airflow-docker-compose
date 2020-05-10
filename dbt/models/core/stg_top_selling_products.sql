@@ -7,7 +7,7 @@ SELECT
 FROM
     {{ ref('order_products') }} as t1
 LEFT JOIN
-    {{ ref('products') }} as t2
+    {{ source('instacart_raw_data','products') }} as t2
 ON 
     t1.product_id = t2.product_id
 GROUP BY

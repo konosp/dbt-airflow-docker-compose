@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: instacart_raw_data
+    database: airflowdb # Tell dbt to look for the source in the "raw" database
+    schema: dbt_seed_data # You wouldn't put your source data in public, would you?
+    tables:
+      - name: aisles
+      - name: departments
+      - name: orders
+      - name: products
+      - name: order_products__train
+      - name: order_products__prior

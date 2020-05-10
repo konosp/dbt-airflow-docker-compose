@@ -6,7 +6,7 @@ with initial_dates as (
     , case order_number
         when 1 then timestamp '2019-01-06 00:00:00' + (round(random()) * 5 * INTERVAL '1 week') + INTERVAL '1 day' * order_dow + INTERVAL '1 hour' * order_hour_of_day
     end as random_date_v2
-    from dbt_seed_data.orders
+    from {{ source('instacart_raw_data', 'orders') }}
 ),
 cumulative_dates as (
     select *
