@@ -24,6 +24,10 @@ services:
       DBT_PROFILES_DIR: /dbt
       AIRFLOW_HOME: /airflow
       AIRFLOW__CORE__DAGS_FOLDER: /airflow/dags
+      AIRFLOW__CORE__PARALLELISM: 4
+      AIRFLOW__CORE__DAG_CONCURRENCY: 4
+      AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: 4
+      AIRFLOW__ADMIN__HIDE_SENSITIVE_VARIABLE_FIELDS: 'False'
       # Postgres details need to match values defined in the postgres service
       POSTGRES_USER: airflowuser
       POSTGRES_PASSWORD: pssd
