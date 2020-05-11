@@ -81,6 +81,7 @@ for node in nodes:
             task_id= node,
             bash_command=bsh_cmd,
             dag=daily_dag,
+            depends_on_past = True
         )
         all_operators[node] = tmp_operator
 
