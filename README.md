@@ -49,6 +49,12 @@ Finally, within Adminer you can view the final models.
 * Delete the services: `docker-compose rm` Ddeletes all associated data. The database will be empty on next run.
 * Re-build the services: `docker-compose build` Re-builds the containers based on the docker-compose.yml definition. Since only the Airflow service is based on local files, this is the only image that is re-build (useful if you apply changes on the `./scripts_airflow/init.sh` file. 
 
+If you need to connect to the running containers, use `docker-compose ps` to view the running services.
+
+<img src="https://storage.googleapis.com/analyticsmayhem-blog-files/dbt-airflow-docker/dbt-service-list.png" width="70%">
+
+For example, to connect to the Airflow service, you can execute `docker exec -it dbt-airflow-docker_airflow_1 /bin/bash`. This will attach your terminal to the selected container and activate a bash terminal.
+
 ## Project Notes and Docker Volumes
 Because the project directories (`./scripts_postgres`, `./sample_data`, `./dbt` and `./airflow`) are defined as volumes in `docker-compose.yml`, they are directly accessible from within the containers. This means:
 * On Airflow startup the existing models are compiled as part of the initialisation script. If you make changes to the models, you need to re-compile them. Two options:
