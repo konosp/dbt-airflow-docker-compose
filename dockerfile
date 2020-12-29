@@ -1,5 +1,5 @@
 FROM python:3.7
-RUN pip install 'apache-airflow[postgres]' && pip install dbt==0.15
+RUN pip install 'apache-airflow[postgres]==1.10.14' && pip install dbt==0.15
 RUN mkdir /project
 COPY scripts_airflow/ /project/scripts/
 
