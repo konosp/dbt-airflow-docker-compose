@@ -67,3 +67,8 @@ Because the project directories (`./scripts_postgres`, `./sample_data`, `./dbt` 
 
 
 Credit to the very helpful repository: https://github.com/puckel/docker-airflow
+
+
+### Infrastructure model
+
+![Infrastructure model](.infragenie/infrastructure_model.png)
