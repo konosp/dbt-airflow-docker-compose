@@ -1,0 +1,26 @@
+FROM apache/airflow:2.3.0
+
+USER root
+COPY ./conf/debina-sources-11.list /etc/apt/sources.list
+RUN chmod 644 /etc/apt/sources.list
+
+RUN apt-get update && apt-get install -y sasl2-bin libsasl2-2 libsasl2-dev libsasl2-modules libsasl2-modules-gssapi-mit gcc g++
+
+USER airflow
+RUN pip install --user --upgrade pip wheel setuptools  -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN pip install --user apache-airflow-providers-postgres==4.1.0   -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN	pip install --user apache-airflow-providers-apache-hive==3.0.0  -i https://pypi.tuna.tsinghua.edu.cn/simple/
+
+## Required library for pyhive 
+RUN pip install --user sqlalchemy    -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN pip install --user pyhive    -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN pip install --user thrift    -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN pip install --user sasl    -i https://pypi.tuna.tsinghua.edu.cn/simple/
+RUN pip install --user thrift-sasl   -i https://pypi.tuna.tsinghua.edu.cn/simple/
+
+
+USER root
+ADD ./scripts/airflow_init.sh $AIRFLOW_HOME/init-scripts/run.sh
+RUN chmod -R 755 $AIRFLOW_HOME/init-scripts
+
+USER airflow

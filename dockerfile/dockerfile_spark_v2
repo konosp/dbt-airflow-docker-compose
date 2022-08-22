@@ -1,0 +1,10 @@
+FROM spark
+
+COPY ./libs/* $SPARK_HOME/jars/
+RUN chown spark:hadoop $SPARK_HOME/jars/*.jar
+
+RUN mkdir -p  ${SPARK_HOME}/logs
+RUN chown spark:hadoop -R ${SPARK_HOME}
+
+ENV PATH $PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+expose 4040 7070 8081 8082 10000

@@ -1,0 +1,43 @@
+FROM ubuntu-china:18.04
+RUN apt-get clean && apt-get update -y && apt-get install -y net-tools vim wget curl ssh openjdk-8-jdk sudo python3 less
+RUN apt-get install --only-upgrade openssl libssl1.1 libexpat1
+RUN apt-get install -y libk5crypto3 libkrb5-3 libsqlite3-0
+
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV PRESTO_VERSION=0.261
+ENV PRESTO_HOME=/usr/bin/presto-${PRESTO_VERSION}
+ENV PRESTO_URL=https://repo1.maven.org/maven2
+ENV PRESTO_URL_CHINA=https://maven.aliyun.com/repository/central
+WORKDIR /root
+
+RUN mkdir -p ${PRESTO_HOME} ${PRESTO_HOME}/presto-client /presto-data /presto-conf
+
+RUN curl -L ${PRESTO_URL_CHINA}/com/facebook/presto/presto-server/${PRESTO_VERSION}/presto-server-${PRESTO_VERSION}.tar.gz | tar zxf - && \
+	mv -f presto-server-${PRESTO_VERSION} ${PRESTO_HOME}/presto-server
+
+RUN wget ${PRESTO_URL_CHINA}/com/facebook/presto/presto-cli/0.261/presto-cli-${PRESTO_VERSION}-executable.jar && \
+	mv -f presto-cli-${PRESTO_VERSION}-executable.jar  ${PRESTO_HOME}/presto-client/.
+
+
+RUN chmod +x ${PRESTO_HOME}/presto-client/presto-cli-${PRESTO_VERSION}-executable.jar
+RUN ln -s  ${PRESTO_HOME}/presto-client/presto-cli-${PRESTO_VERSION}-executable.jar  ${PRESTO_HOME}/presto
+RUN ln -s /usr/bin/python3 /usr/bin/python
+
+RUN mkdir -p ${PRESTO_HOME}/presto-server/etc/catalog
+COPY ./conf/presto-config.properties ${PRESTO_HOME}/presto-server/etc/config.properties
+COPY ./conf/presto-jvm.config ${PRESTO_HOME}/presto-server/etc/jvm.config
+COPY ./conf/presto-log.properties ${PRESTO_HOME}/presto-server/etc/log.properties
+COPY ./conf/presto-node.properties ${PRESTO_HOME}/presto-server/etc/node.properties
+COPY ./conf/presto-hive.properties ${PRESTO_HOME}/presto-server/etc/catalog/hive.properties
+COPY ./conf/core-site.xml /presto-conf/.
+COPY ./conf/hdfs-site.xml /presto-conf/.
+COPY ./scripts/runPresto.sh ${PRESTO_HOME}/entrypoint.sh
+
+
+RUN chmod +x ${PRESTO_HOME}/entrypoint.sh
+WORKDIR $PRESTO_HOME
+EXPOSE 8282
+
+ENTRYPOINT ["sh", "-c", "${PRESTO_HOME}/entrypoint.sh"]
+
+
