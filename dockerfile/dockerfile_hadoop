@@ -1,0 +1,125 @@
+FROM ubuntu-china:18.04
+RUN apt-get clean && apt-get update -y && apt-get install -y net-tools vim wget curl ssh openjdk-8-jdk sudo 
+RUN apt-get install --only-upgrade openssl libssl1.1 libexpat1
+RUN apt-get install -y libk5crypto3 libkrb5-3 libsqlite3-0
+
+ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+ENV HADOOP_VERSION=3.2.3
+ENV HADOOP_HOME=/usr/bin/hadoop-${HADOOP_VERSION}
+ENV HDFS_HOME=/user/hdfs
+ENV HDFS_NAMENODE_USER=hdfs
+ENV HDFS_DATANODE_USER=hdfs
+ENV HDFS_SECONDARYNAMENODE_USER=hdfs
+ENV YARN_RESOURCEMANAGER_USER=hdfs
+ENV YARN_NODEMANAGER_USER=hdfs
+ENV HIVE_VERSION=3.1.2
+ENV HIVE_HOME=/usr/bin/hive-${HIVE_VERSION}
+ENV HADOOP_URL=https://dlcdn.apache.org/hadoop/common
+ENV HADOOP_URL_CHINA=https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common
+
+RUN mkdir -p ${HADOOP_HOME}
+RUN mkdir -p ${HDFS_HOME}
+RUN mkdir -p ${HIVE_HOME}
+
+
+# Java caches dns results forever, don't cache dns results forever:
+RUN touch ${JAVA_HOME}/jre/lib/security/java.security
+RUN sed -i '/networkaddress.cache.ttl/d' ${JAVA_HOME}/jre/lib/security/java.security
+RUN sed -i '/networkaddress.cache.negative.ttl/d' ${JAVA_HOME}/jre/lib/security/java.security
+RUN echo 'networkaddress.cache.ttl=0' >> ${JAVA_HOME}/jre/lib/security/java.security
+RUN echo 'networkaddress.cache.negative.ttl=0' >> ${JAVA_HOME}/jre/lib/security/java.security
+
+WORKDIR /root
+
+RUN curl -L ${HADOOP_URL_CHINA}/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz | tar zxf - && \
+    mv hadoop-${HADOOP_VERSION}/* ${HADOOP_HOME}
+
+# to allow running as non-root
+RUN groupadd -r hadoop --gid=1001 && \
+    useradd -r -g hadoop --uid=1001 -d ${HADOOP_HOME} hadoop && \
+	adduser hadoop sudo && echo "hadoop     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && cd /usr/bin/ && sudo ln -s python3 python
+
+## # to setup permissions for hadoop user	
+RUN mkdir -p /tmp/hadoop /var/lib/hadoop /tmp/hadoop /tmp/logs
+RUN chown -R hadoop:hadoop ${HADOOP_HOME} /tmp/hadoop /var/lib/hadoop /tmp/hadoop /tmp/logs /var/lib/hadoop /etc/passwd $(readlink -f ${JAVA_HOME}/jre/lib/security/cacerts)
+RUN chmod -R u+rwx,g+rwx ${HADOOP_HOME} /tmp/hadoop /var/lib/hadoop /tmp/hadoop /tmp/logs /var/lib/hadoop /etc/passwd $(readlink -f ${JAVA_HOME}/jre/lib/security/cacerts)
+RUN mkdir /data && chmod a+rwx /data
+
+## # to setup environment path
+RUN echo "export JAVA_HOME=${JAVA_HOME}" >> $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+RUN echo "export HADOOP_HOME=${HADOOP_HOME}" >> $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+
+# replace configuration
+COPY ./conf/core-site.xml $HADOOP_HOME/etc/hadoop/
+COPY ./conf/hdfs-site.xml $HADOOP_HOME/etc/hadoop/
+COPY ./conf/yarn-site.xml $HADOOP_HOME/etc/hadoop/
+
+
+# to allow running as non-root
+RUN groupadd -r hdfs --gid=1002 && \
+    useradd -r -g hdfs --uid=1002 -d ${HDFS_HOME} hdfs && \
+	adduser hdfs hadoop  && \
+	adduser hdfs sudo && echo "hdfs     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && cd /usr/bin/ 
+	
+# to setup permissions for hdfs user	
+RUN mkdir -p ${HDFS_HOME} /tmp/hdfs /var/lib/hdfs
+RUN chown -R hdfs:hdfs ${HDFS_HOME} /tmp/hdfs /var/lib/hdfs /etc/passwd $(readlink -f ${JAVA_HOME}/jre/lib/security/cacerts)
+RUN chmod -R u+rwx,g+rwx ${HDFS_HOME} /tmp/hdfs /var/lib/hdfs /etc/passwd $(readlink -f ${JAVA_HOME}/jre/lib/security/cacerts)
+
+USER hdfs
+COPY ./conf/ssh_config /etc/ssh/ssh_config
+RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa && cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys && chmod 0600 ~/.ssh/authorized_keys
+
+USER root
+
+ENV HIVE_URL=https://dlcdn.apache.org/hive
+ENV HIVE_URL_CHINA=https://mirrors.tuna.tsinghua.edu.cn/apache/hive
+
+RUN curl -L ${HIVE_URL_CHINA}/hive-${HIVE_VERSION}/apache-hive-${HIVE_VERSION}-bin.tar.gz | tar zxf - && \
+mv apache-hive-${HIVE_VERSION}-bin/* ${HIVE_HOME}
+
+# Add JDBC jar
+RUN rm -rf ${HIVE_HOME}/lib/postgresql-*.jar
+RUN curl -o ${HIVE_HOME}/lib/postgresql-42.2.16.jar  https://jdbc.postgresql.org/download/postgresql-42.2.16.jar
+
+# Remove vulnerable Log4j version and install latest
+ARG LOG4J_VERSION=2.17.1
+ARG LOG4J_LOCATION="https://repo1.maven.org/maven2/org/apache/logging/log4j"
+RUN \
+    rm -f ${HIVE_HOME}/lib/log4j-* && \
+    curl -o ${HIVE_HOME}/lib/log4j-1.2-api-${LOG4J_VERSION}.jar ${LOG4J_LOCATION}/log4j-1.2-api/${LOG4J_VERSION}/log4j-1.2-api-${LOG4J_VERSION}.jar  && \
+    curl -o ${HIVE_HOME}/lib/log4j-api-${LOG4J_VERSION}.jar ${LOG4J_LOCATION}/log4j-api/${LOG4J_VERSION}/log4j-api-${LOG4J_VERSION}.jar && \
+    curl -o ${HIVE_HOME}/lib/log4j-core-${LOG4J_VERSION}.jar ${LOG4J_LOCATION}/log4j-core/${LOG4J_VERSION}/log4j-core-${LOG4J_VERSION}.jar && \
+	curl -o ${HIVE_HOME}/lib/log4j-web-${LOG4J_VERSION}.jar ${LOG4J_LOCATION}/log4j-web/${LOG4J_VERSION}/log4j-web-${LOG4J_VERSION}.jar  && \
+    curl -o ${HIVE_HOME}/lib/log4j-slf4j-impl-${LOG4J_VERSION}.jar ${LOG4J_LOCATION}/log4j-slf4j-impl/${LOG4J_VERSION}/log4j-slf4j-impl-${LOG4J_VERSION}.jar
+	
+
+# replace a library and add missing libraries
+RUN rm -f ${HIVE_HOME}/lib/guava-19.0.jar \
+&& cp ${HADOOP_HOME}/share/hadoop/common/lib/guava-27.0-jre.jar ${HIVE_HOME}/lib \
+&& cp ${HADOOP_HOME}/share/hadoop/tools/lib/hadoop-aws-${HADOOP_VERSION}.jar ${HIVE_HOME}/lib \
+&& cp ${HADOOP_HOME}/share/hadoop/tools/lib/aws-java-sdk-bundle-*.jar ${HIVE_HOME}/lib
+
+# Replace configuration files
+COPY ./conf/beeline-site.xml ${HIVE_HOME}/conf/.
+COPY ./conf/hive-site.xml ${HIVE_HOME}/conf/.
+COPY ./conf/metastore-site.xml ${HIVE_HOME}/conf/.
+
+
+# imagebuilder expects the directory to be created before VOLUME
+RUN mkdir -p /var/lib/hive /.beeline ${HOME}/.beeline
+
+# to allow running as non-root
+RUN groupadd -r hive --gid=1003
+RUN useradd -r -g hive --uid=1003 -d ${HIVE_HOME} hive
+RUN adduser hive hadoop  && echo "hive     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN chown -R hive:hadoop ${HIVE_HOME} /var/lib/hive /.beeline ${HOME}/.beeline /etc/passwd $(readlink -f ${JAVA_HOME}/lib/security/cacerts) && \
+    chmod -R u+rwx,g+rwx ${HIVE_HOME} /var/lib/hive /.beeline ${HOME}/.beeline /etc/passwd $(readlink -f ${JAVA_HOME}/lib/security/cacerts) 
+    
+COPY ./scripts/runHadoop.sh /usr/local/bin
+RUN chown hdfs:hdfs /usr/local/bin/runHadoop.sh && chmod +x /usr/local/bin/runHadoop.sh
+COPY ./scripts/runHMS.sh  /usr/local/bin
+RUN chown hive:hadoop /usr/local/bin/runHMS.sh && chmod +x /usr/local/bin/runHMS.sh
+
+ENV PATH $PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$HIVE_HOME/sbin
+EXPOSE 50070 50075 50010 50020 50090 8020 9000 9864 9870 10020 19888 8088 8030 8031 8032 8033 8040 8042 22 9083

@@ -1,0 +1,11 @@
+FROM ubuntu:18.04
+COPY ./conf/ubuntu-sources-18.04.list /etc/apt/sources.list
+RUN chmod 644 /etc/apt/sources.list
+
+RUN ls -al /etc/lsb-release
+
+RUN apt-get clean  
+RUN apt-get update -y 
+RUN apt-get install -y net-tools vim wget curl ssh openjdk-8-jdk sudo 
+RUN apt-get install --only-upgrade openssl libssl1.1 libexpat1
+RUN apt-get install -y libk5crypto3 libkrb5-3 libsqlite3-0

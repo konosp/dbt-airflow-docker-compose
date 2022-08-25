@@ -1,0 +1,23 @@
+FROM jupyter/all-spark-notebook:spark-3.2.1
+
+USER root
+
+COPY ./conf/ubuntu-sources-20.04.list /etc/apt/sources.list
+RUN chmod 644 /etc/apt/sources.list
+# RUN apt-get update &&  apt-get install -y libpq-dev
+RUN apt-get update &&  apt-get install -y apt-utils sasl2-bin libsasl2-2 libsasl2-dev libsasl2-modules libsasl2-modules-gssapi-mit libpq-dev python-dev
+
+RUN conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+RUN conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+RUN conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+RUN conda config --set show_channel_urls yes
+
+
+USER jovyan 
+RUN pip install --upgrade pip wheel setuptools
+RUN pip install sqlalchemy    
+RUN pip install thrift        
+RUN pip install sasl          
+RUN pip install thrift-sasl   
+RUN pip install pyhive        
+RUN pip install psycopg2

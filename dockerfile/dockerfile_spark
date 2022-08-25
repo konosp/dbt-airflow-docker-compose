@@ -1,0 +1,70 @@
+FROM ubuntu-china:18.04
+
+ARG OPENJDK_VERSION=8
+ARG BUILD_DATE
+ARG SPARK_VERSION=3.0.3
+ARG HADOOP_VERSION=3.2
+
+LABEL org.label-schema.name="Apache Spark ${SPARK_VERSION}" \
+      org.label-schema.build-date=$BUILD_DATE \
+      org.label-schema.version=$SPARK_VERSION      
+      
+ENV SPARK_HOME /usr/spark
+ENV PATH="/usr/spark/bin:/usr/spark/sbin:${PATH}"
+ENV SPARK_URL=https://archive.apache.org/dist/spark
+ENV SPARK_URL_CHINA=https://mirrors.tuna.tsinghua.edu.cn/apache/spark
+# System packages
+RUN apt-get clean && apt-get update -y
+RUN apt-get install -y python3 python3-pip curl wget unzip procps openjdk-8-jdk libpostgresql-jdbc-java && \
+  ln -s /usr/bin/python3 /usr/bin/python && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install wget requests datawrangler
+
+RUN apt-get install -y wget procps libpostgresql-jdbc-java 
+
+#RUN wget -q "${SPARK_URL_CHINA}/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz"
+COPY ./images/spark-3.0.3-bin-hadoop3.2.tgz .
+RUN tar xzf "spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz" && \
+    rm "spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz" && \
+    mv "spark-${SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}" $SPARK_HOME && \
+	apt-get clean
+
+RUN ln -s /usr/share/java/postgresql-jdbc4.jar /usr/spark/jars/postgresql-jdbc4.jar
+    
+
+# Add User
+RUN groupadd -r hadoop --gid=1001 
+RUN useradd -m hdfs -g hadoop && adduser hdfs sudo && echo "hdfs     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -m hive -g hadoop && adduser hive sudo && echo "hive     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+RUN useradd -m spark -g hadoop && adduser spark sudo && echo "spark     ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+
+# Prepare dirs
+RUN mkdir -p /tmp/logs/ && chmod a+w /tmp/logs/ && mkdir /app && chmod a+rwx /app && mkdir /data && chmod a+rwx /data
+
+# update spark-default.conf
+COPY ./conf/spark-defaults.conf $SPARK_HOME/conf/spark-defaults.conf
+COPY ./conf/hdfs-site.xml $SPARK_HOME/conf/hdfs-site.xml
+COPY ./conf/hive-site.xml $SPARK_HOME/conf/hive-site.xml
+COPY ./conf/log4j.properties $SPARK_HOME/conf/log4j.properties
+
+WORKDIR ${SPARK_HOME}
+
+COPY ./scripts/runMaster.sh  /usr/local/bin
+RUN chown spark:hadoop /usr/local/bin/runMaster.sh && chmod +x /usr/local/bin/runMaster.sh
+
+COPY ./scripts/runWorker.sh  /usr/local/bin
+RUN chown spark:hadoop /usr/local/bin/runWorker.sh && chmod +x /usr/local/bin/runWorker.sh
+
+COPY ./scripts/runThrift.sh  /usr/local/bin
+RUN chown spark:hadoop /usr/local/bin/runThrift.sh && chmod +x /usr/local/bin/runThrift.sh
+
+COPY ./libs/* $SPARK_HOME/jars/
+RUN chown spark:hadoop $SPARK_HOME/jars/*.jar
+
+RUN mkdir -p  ${SPARK_HOME}/logs
+RUN chown spark:hadoop -R ${SPARK_HOME}
+
+ENV PATH $PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+expose 4040 7070 8081 8082 10000

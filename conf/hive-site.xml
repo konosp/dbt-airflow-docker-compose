@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. See accompanying LICENSE file.
+-->
+
+<!-- Put site-specific property overrides in this file. -->
+
+<configuration>
+	
+	<property>
+		<name>hive.metastore.uris</name>
+		<value>thrift://hms-service:9083</value>
+	</property>
+	<property>
+       <name>hive.metastore.warehouse.dir</name>
+       <value>/user/hive/warehouse</value>
+    </property>
+	
+	<property>
+		<name>javax.jdo.option.ConnectionURL</name>
+		<value>jdbc:postgresql://postgres-hms:5432/metastore?createDatabaseIfNotExist=true</value>
+	</property>
+	<property>
+		<name>javax.jdo.option.ConnectionDriverName</name>
+		<value>org.postgresql.Driver</value>
+	</property>
+	<property>
+		<name>javax.jdo.option.ConnectionUserName</name>
+		<value>hive</value>
+	</property>
+		<property>
+		<name>javax.jdo.option.ConnectionPassword</name>
+		<value>pssd</value>
+	</property>
+	<property>
+	  <name>hive.metastore.schema.verification</name>
+	  <value>false</value>
+	</property>
+	
+	<property>
+	  <name>hive.exec.stagingdir</name>
+	  <value>/tmp/hive/spark-${user.name}</value>
+	</property>
+
+
+	<property>
+		<name>hive.execution.engine</name>
+		<value>mr</value>
+	</property>
+	<property>
+		<name>hive.server2.active.passive.ha.enable</name>
+		<value>false</value>
+	</property>
+	
+	<property>
+		<name>hive.server2.authentication</name>
+		<value>NONE</value>
+	</property>
+	<property>
+		 <name>datanucleus.autoCreateSchema</name>
+		 <value>false</value>
+		 <description>Creates necessary schema on a startup if one doesn't exist</description>
+	</property> 
+
+	<property>
+        <name>fs.s3a.access.key</name>
+        <value>minioadmin</value>
+    </property>
+    <property>
+        <name>fs.s3a.secret.key</name>
+        <value>minioadmin</value>
+    </property>
+    <property>
+        <name>fs.s3a.connection.ssl.enabled</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>fs.s3a.path.style.access</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>fs.s3a.endpoint</name>
+        <value>minio:19000</value>
+    </property>
+	<!-- 
+		Note that the hive.metastore.warehouse.dir property in hive-site.xml is deprecated since Spark 2.0.0. 
+		Instead, use spark.sql.warehouse.dir to specify the default location of database in warehouse
+		this is already configured under spark-defaults.xml 
+		
+		*** both hive.metastore.warehouse.dir & hive.metastore.warehouse.external.dir doesn't work for external table ***
+		*** it is required to specify the full path hdfs//hadoop-service:9000/data/[table_dir_name] for working properly ***
+	-->
+	<!-- skip this for now , override by spark-defaults.xml -->
+	<!--
+   	<property>
+       <name>spark.sql.warehouse.dir</name>
+       <value>hdfs://hadoop-service:9000/user/hive/warehouse</value>
+    </property>
+	<property>
+       <name>hive.metastore.warehouse.dir</name>
+       <value>hdfs://hadoop-service:9000/user/hive/warehouse</value>
+    </property>
+	<property>
+       <name>hive.metastore.warehouse.external.dir</name>
+       <value>hdfs://hadoop-service:9000/data/</value>
+    </property>
+	-->
+   
+   	<!-- setting up remote hms database for spark thrift -->
+	<!-- 
+		spark.hadoop.javax.jdo.option.ConnectionURL jdbc:postgresql://postgres-hms:5432/hms?createDatabaseIfNotExist=true
+		spark.hadoop.javax.jdo.option.ConnectionDriverName org.postgresql.Driver
+		spark.hadoop.javax.jdo.option.ConnectionUserName hive
+		spark.hadoop.javax.jdo.option.ConnectionPassword pssd
+		spark.hadoop.hive.metastore.schema.verification false 
+	-->
+</configuration>
+

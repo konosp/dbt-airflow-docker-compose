@@ -1,4 +1,67 @@
 version: '3'
+<<<<<<< Updated upstream
+=======
+x-airflow-common:
+  &airflow-common
+  #image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.2.5}
+  image: airflow:2.3.0
+  environment:
+    &airflow-common-env
+    DBT_HOME: /dbt
+    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    # for airflow backward compatbility
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@${AIRFLOW_POSTGRES_HOST}:${AIRFLOW_POSTGRES_PORT}/${AIRFLOW_POSTGRES_DB}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@${AIRFLOW_POSTGRES_HOST}:${AIRFLOW_POSTGRES_PORT}/${AIRFLOW_POSTGRES_DB}
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${AIRFLOW_POSTGRES_USER}:${AIRFLOW_POSTGRES_PASSWORD}@${AIRFLOW_POSTGRES_HOST}:${AIRFLOW_POSTGRES_PORT}/${AIRFLOW_POSTGRES_DB}
+    AIRFLOW__CELERY__BROKER_URL: redis://:@redis-airflow:6379/0
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+    #Database CONNECTIONs
+    AIRFLOW_CONN_DBT_POSTGRESQL_CONN: "postgresql://${DBT_POSTGRES_USER}:${DBT_POSTGRES_PASSWORD}@${DBT_POSTGRES_HOST}:${DBT_POSTGRES_PORT}/${DBT_POSTGRES_DB}"
+    #Spark Thrift CONDITIONS
+    AIRFLOW_CONN_SPARK_CONN: "hiveserver2://${SPARK_THRIFT_HOST}:${SPARK_THRIFT_PORT}/default"
+    #DBT RPC CONNECTIONs
+    AIRFLOW_CONN_DBT_SSH_CONN:  ssh://${DBT_SSH_HOST}:${DBT_SSH_PORT}?conn_timeout=10&compress=false&no_host_key_check=true&allow_host_key_change=true&key_file=${SSH_KEY_FILE}
+    TZ: "Asia/Hong_Kong"
+  volumes:
+    - ~/.ssh:/root/.ssh:ro
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./dbt:/dbt
+  user: "${AIRFLOW_UID:-50000}:0"
+  depends_on:
+    &airflow-common-depends-on
+    redis-airflow:
+      condition: service_healthy
+    postgres-airflow:
+      condition: service_healthy
+    dbt-service:
+      condition: service_healthy
+
+x-spark-common:
+  &spark-common
+  environment:
+    &spark-common-env
+    user: "${SPARK_UID:-50000}:0"
+    SPARK_HOME: ${SPARK_HOME}
+    SPARK_MASTER_HOST: ${SPARK_MASTER_HOST}
+    SPARK_MASTER_PORT: ${SPARK_MASTER_PORT}
+    SPARK_MASTER_WEBUI_PORT: ${SPARK_MASTER_WEBUI_PORT}
+    SPARK_UI_PORT: ${SPARK_UI_PORT}
+    SPARK_THRIFT_HOST: ${SPARK_THRIFT_HOST}
+    SPARK_THRIFT_PORT: ${SPARK_THRIFT_PORT}
+    SPARK_DAEMON_MEMORY: ${SPARK_DAEMON_MEMORY}
+    SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY}
+    SPARK_DRIVER_CORES: ${SPARK_DRIVER_CORES}
+    SPARK_EXECUTOR_MEMORY: ${SPARK_EXECUTOR_MEMORY}
+    SPARK_EXECUTOR_CORES: ${SPARK_EXECUTOR_CORES}
+    TZ: "Asia/Hong_Kong"
+
+>>>>>>> Stashed changes
 services:
   postgres-airflow:
     image: postgres
@@ -12,8 +75,17 @@ services:
       - 5432
     restart: always
     volumes:
+<<<<<<< Updated upstream
       - ./scripts_postgres:/docker-entrypoint-initdb.d
       # - ./sample_data:/sample_data
+=======
+      - pg-airflow-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 3
+    restart: always
+>>>>>>> Stashed changes
 
   postgres-dbt:
     image: postgres
@@ -25,10 +97,277 @@ services:
       DBT_RAW_DATA_SCHEMA: dbt_raw_data
     expose:
       - 5432
+<<<<<<< Updated upstream
     restart: always
+=======
+    volumes:
+      - pg-dbt-volume:/var/lib/postgresql/data
+      - ./sample_data:/sample_data
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      retries: 3
+    restart: always
+    profiles:
+      - donotstart
+      
+  postgres-hms:
+    image: postgres:13
+    container_name: postgres-hms
+    environment:
+      POSTGRES_USER: ${HMS_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${HMS_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${HMS_POSTGRES_DB}
+      TZ: "Asia/Hong_Kong"
+    expose:
+      - 5432
+    volumes:
+      - pg-hms-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      retries: 3
+    restart: always
+
+
+  dbt-service:
+    image: dbt-service:1.1.0
+    container_name: dbt-service
+    expose:
+      - 22
+    ports:
+      - 8081:8081
+    environment:
+      DBT_HOME: /dbt
+      DBT_POSTGRES_PASSWORD: ${DBT_POSTGRES_PASSWORD}
+      DBT_POSTGRES_USER: ${DBT_POSTGRES_USER}
+      DBT_POSTGRES_DB: ${DBT_POSTGRES_DB}
+      DBT_DBT_SCHEMA: ${DBT_DBT_SCHEMA}
+      DBT_DBT_RAW_DATA_SCHEMA: ${DBT_DBT_RAW_DATA_SCHEMA}
+      DBT_POSTGRES_HOST: ${DBT_POSTGRES_HOST}
+      TZ: "Asia/Hong_Kong"
+    volumes:
+      - ~/.ssh:/root/.ssh:ro
+      - ./dbt:/dbt:consistent
+      - ./dbt/profiles.yml:/root/.dbt/profiles.yml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 10s
+      retries: 3    
+    restart: always
+    depends_on:
+      hadoop-service:
+        condition: service_healthy
+      spark-thrift:
+        condition: service_healthy
+
+  redis-airflow:
+    image: redis:latest
+    container_name: redis-airflow
+    environment:
+      TZ: "Asia/Hong_Kong"
+    expose:
+      - 6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 30s
+      retries: 30
+    restart: always
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    hostname: airflow-webserver
+    entrypoint: /bin/bash
+    # yamllint disable rule:line-length
+    command:
+      - -c
+      - |
+        /bin/sh -c "$AIRFLOW_HOME/init-scripts/run.sh" 
+        exec /entrypoint airflow webserver
+    environment:
+      <<: *airflow-common-env
+    ports:
+      - 8080:8080
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-scheduler:
+        condition: service_healthy
+      airflow-worker:
+        condition: service_healthy
+        
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    hostname: airflow-scheduler
+    command: scheduler
+    healthcheck:
+      test: ["CMD-SHELL", 'su airflow -c "airflow jobs check --job-type SchedulerJob --hostname airflow-scheduler"']
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    environment:
+      <<: *airflow-common-env      
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-worker:
+    <<: *airflow-common
+    container_name: airflow-worker
+    hostname: airflow-worker
+    command: celery worker
+    healthcheck:
+      test: ["CMD-SHELL", 'su airflow -c "celery --app airflow.executors.celery_executor.app inspect ping -d celery@airflow-worker"']
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    environment:
+      <<: *airflow-common-env
+      # Required to handle warm shutdown of the celery workers properly
+      # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
+      DUMB_INIT_SETSID: "0"
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-triggerer:
+    <<: *airflow-common
+    container_name: airflow-triggerer
+    hostname: airflow-triggerer
+    command: triggerer
+    profiles:
+      - debug
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    environment:
+      <<: *airflow-common-env      
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+  airflow-flower:
+    <<: *airflow-common
+    container_name: airflow-flower
+    hostname: airflow-flower
+    command: celery flower
+    profiles:
+      - debug
+    expose:
+      - 5555
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    environment:
+      <<: *airflow-common-env      
+    restart: always
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    hostname: airflow-init
+    entrypoint: /bin/bash
+    # yamllint disable rule:line-length
+    command:
+      - -c
+      - |
+        function ver() {
+          printf "%04d%04d%04d%04d" $${1//./ }
+        }
+        airflow_version=$$(gosu airflow airflow version)
+        airflow_version_comparable=$$(ver $${airflow_version})
+        min_airflow_version=2.2.0
+        min_airflow_version_comparable=$$(ver $${min_airflow_version})
+        if (( airflow_version_comparable < min_airflow_version_comparable )); then
+          echo
+          echo -e "\033[1;31mERROR!!!: Too old Airflow version $${airflow_version}!\e[0m"
+          echo "The minimum Airflow version supported: $${min_airflow_version}. Only use this or higher!"
+          echo
+          exit 1
+        fi
+        if [[ -z "${AIRFLOW_UID}" ]]; then
+          echo
+          echo -e "\033[1;33mWARNING!!!: AIRFLOW_UID not set!\e[0m"
+          echo "If you are on Linux, you SHOULD follow the instructions below to set "
+          echo "AIRFLOW_UID environment variable, otherwise files will be owned by root."
+          echo "For other operating systems you can get rid of the warning with manually created .env file:"
+          echo "    See: https://airflow.apache.org/docs/apache-airflow/stable/start/docker.html#setting-the-right-airflow-user"
+          echo
+        fi
+        one_meg=1048576
+        mem_available=$$(($$(getconf _PHYS_PAGES) * $$(getconf PAGE_SIZE) / one_meg))
+        cpus_available=$$(grep -cE 'cpu[0-9]+' /proc/stat)
+        disk_available=$$(df / | tail -1 | awk '{print $$4}')
+        warning_resources="false"
+        if (( mem_available < 4000 )) ; then
+          echo
+          echo -e "\033[1;33mWARNING!!!: Not enough memory available for Docker.\e[0m"
+          echo "At least 4GB of memory required. You have $$(numfmt --to iec $$((mem_available * one_meg)))"
+          echo
+          warning_resources="true"
+        fi
+        if (( cpus_available < 2 )); then
+          echo
+          echo -e "\033[1;33mWARNING!!!: Not enough CPUS available for Docker.\e[0m"
+          echo "At least 2 CPUs recommended. You have $${cpus_available}"
+          echo
+          warning_resources="true"
+        fi
+        if (( disk_available < one_meg * 10 )); then
+          echo
+          echo -e "\033[1;33mWARNING!!!: Not enough Disk space available for Docker.\e[0m"
+          echo "At least 10 GBs recommended. You have $$(numfmt --to iec $$((disk_available * 1024 )))"
+          echo
+          warning_resources="true"
+        fi
+        if [[ $${warning_resources} == "true" ]]; then
+          echo
+          echo -e "\033[1;33mWARNING!!!: You have not enough resources to run Airflow (see above)!\e[0m"
+          echo "Please follow the instructions to increase amount of resources available:"
+          echo "   https://airflow.apache.org/docs/apache-airflow/stable/start/docker.html#before-you-begin"
+          echo
+        fi
+        mkdir -p /sources/logs /sources/dags /sources/plugins
+        chown -R "${AIRFLOW_UID}:0" /sources/{logs,dags,plugins}
+        exec /entrypoint airflow version
+    # yamllint enable rule:line-length
+    environment:
+      <<: *airflow-common-env
+      _AIRFLOW_DB_UPGRADE: 'true'
+      _AIRFLOW_WWW_USER_CREATE: 'true'
+      _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
+      _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+    user: "0:0"
+>>>>>>> Stashed changes
     volumes:
       - ./sample_data:/sample_data
 
+<<<<<<< Updated upstream
   airflow:
     build: .
     restart: always
@@ -57,6 +396,13 @@ services:
     depends_on:
       - postgres-airflow
       - postgres-dbt
+=======
+  jupyter-notebook:
+    image: jupyter-spark
+    container_name: jupyter-spark
+    command: bash -c "start-notebook.sh --NotebookApp.password=${JUPYTER_TOKEN} "
+    user: root
+>>>>>>> Stashed changes
     ports:
       - 8000:8080
     volumes:
@@ -66,9 +412,123 @@ services:
   adminer:
     image: adminer
     restart: always
+<<<<<<< Updated upstream
+=======
+    depends_on:
+        postgres-hms: 
+            condition: service_healthy
+        spark-master: 
+            condition: service_healthy
+        spark-worker-1: 
+            condition: service_healthy
+        spark-worker-2: 
+            condition: service_healthy
+  
+  spark-worker-1:
+    image: spark
+    hostname: spark-worker-1
+    container_name: spark-worker-1
+    environment:
+      <<: *spark-common-env
+    expose:
+      - ${SPARK_WORKER_PORT}
+    user: spark
+    entrypoint: 
+      - runWorker.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SPARK_WORKER_PORT}"]
+      interval: 10s
+      retries: 3
+    restart: always
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      
+  spark-worker-2:
+    image: spark
+    hostname: spark-worker-2
+    container_name: spark-worker-2
+    environment:
+      <<: *spark-common-env
+    expose:
+      - ${SPARK_WORKER_PORT}
+    user: spark
+    entrypoint: 
+      - runWorker.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${SPARK_WORKER_PORT}"]
+      interval: 10s
+      retries: 3
+    restart: always
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      
+  hadoop-service:
+    image: hadoopv2
+    container_name: hadoop-service
+    hostname: hadoop-service
+    environment:
+      <<: *spark-common-env
+      HADOOP_HOME: ${HADOOP_HOME}
+    ports:
+      - ${HDFS_DEFAULTFS_PORT}:${HDFS_DEFAULTFS_PORT}
+    user: hdfs
+    entrypoint: 
+      - runHadoop.sh
+    healthcheck:
+      test: ["CMD", "hdfs", "dfs", "-test", "-e", "/"]
+      interval: 10s
+      retries: 3
+    restart: always
+    volumes:
+      - ./sample_data:/sample/:ro
+
+  hms-service:
+    image: hadoopv2
+    container_name: hms-service
+    hostname: hms-service
+>>>>>>> Stashed changes
     ports:
       - 8080:8080
     depends_on:
+<<<<<<< Updated upstream
       - postgres-airflow
       - postgres-dbt
+=======
+        hms-service: 
+            condition: service_healthy
+
+  minio:
+    image: minio/minio
+    hostname: "minio"
+    volumes:
+      - ./minio-data:/data
+    ports:
+      - 19000:19000
+      - 19001:19001
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server --address ':19000' --console-address ':19001' /data
+    privileged: true
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:19000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+       
+volumes:
+  pg-airflow-volume:
+    name: "pgdb-airflow"
+    driver: local
+  pg-dbt-volume:
+    name: "pgdb-dbt"
+    driver: local
+  pg-hms-volume:
+    name: "pgdb-hms"
+    driver: local
+
+>>>>>>> Stashed changes
 
